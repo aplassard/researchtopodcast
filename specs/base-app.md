@@ -206,4 +206,3 @@ Async background tasks stream progress events over sse channel /v1/events/{id} f
 	3.	Docker Compose (frontend, api, reverse‑proxy) serves the React UI at http://localhost:8080, and generating an episode through the UI produces identical output to the CLI.
 	4.	Repository passes ruff, black, isort, and mypy --strict.
 	5.	CI finishes in < 15 min with caches and parallel jobs.
-
