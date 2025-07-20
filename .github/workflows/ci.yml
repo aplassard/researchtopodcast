@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+jobs:
+  build:
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      run: curl -Ls https://astral.sh/uv/install.sh | bash
+
+    - name: Install dependencies
+      run: uv pip install -e ".[dev]"
+
+    - name: Lint & Type Check
+      run: |
+        uv pip run ruff check .
+        uv pip run mypy --strict .
+
+    - name: Test
+      run: uv pip run pytest -q
