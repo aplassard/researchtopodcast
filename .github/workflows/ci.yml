@@ -30,9 +30,9 @@ jobs:
       # 4️⃣  Static analysis
       - name: Lint & type-check
         run: |
-          uv pip run ruff check .
-          uv pip run mypy --strict .
+          uv run ruff check .
+          uv run mypy --strict .
 
       # 5️⃣  Tests
       - name: Test
-        run: uv pip run pytest -q
+        run: uv run pytest -q
