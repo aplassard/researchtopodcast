@@ -183,7 +183,6 @@ def list_voices() -> None:
 @app.command()
 def serve() -> None:
     """Start the FastAPI web server."""
-    import uvicorn
     from ..api.main import app as fastapi_app
     
     console.print("[green]Starting Research2Podcast API server...[/green]")
