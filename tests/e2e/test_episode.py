@@ -208,13 +208,13 @@ def test_list_voices_command(runner):
 @pytest.mark.e2e
 def test_serve_command(runner):
     """Test the serve command (without actually starting the server)."""
-    # Mock uvicorn.run to prevent actually starting the server
-    with patch('researchtopodcast.cli.cli.uvicorn.run') as mock_run:
+    with patch('researchtopodcast.cli.cli.get_llm_client'), \
+         patch('researchtopodcast.cli.cli.get_speech_engine'), \
+         patch('researchtopodcast.cli.cli.uvicorn.run') as mock_run:
+        
         result = runner.invoke(app, ["serve"])
         
-        # Should not fail
         assert result.exit_code == 0
-        # Should have tried to call uvicorn.run
         mock_run.assert_called_once()
 
 
