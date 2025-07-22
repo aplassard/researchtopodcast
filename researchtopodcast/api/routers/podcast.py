@@ -11,7 +11,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile, File,
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from ..dependencies import LLMClientDep, SpeechEngineDep
+from ..dependencies import get_llm_client, get_speech_engine
 from ...script_engine import ScriptPlanner, ScriptFormatter, PodcastMode
 from ...settings import settings
 
@@ -65,8 +65,8 @@ class VoiceInfo(BaseModel):
 async def create_podcast(
     request: PodcastRequest,
     background_tasks: BackgroundTasks,
-    llm_client: LLMClientDep,
-    speech_engine: SpeechEngineDep
+    llm_client = Depends(get_llm_client),
+    speech_engine = Depends(get_speech_engine)
 ):
     """Create a new podcast generation job."""
     
@@ -125,9 +125,9 @@ async def create_podcast_from_upload(
     mode: str = Form("solo"),
     duration: int = Form(300),
     title: Optional[str] = Form(None),
-    background_tasks: BackgroundTasks = BackgroundTasks(),
-    llm_client: LLMClientDep = None,
-    speech_engine: SpeechEngineDep = None
+    background_tasks: BackgroundTasks,
+    llm_client = Depends(get_llm_client),
+    speech_engine = Depends(get_speech_engine)
 ):
     """Create podcast from uploaded file."""
     
@@ -219,7 +219,7 @@ async def download_script(job_id: str):
 
 
 @router.get("/voices", response_model=List[VoiceInfo])
-async def list_voices(speech_engine: SpeechEngineDep):
+async def list_voices(speech_engine = Depends(get_speech_engine)):
     """List available TTS voices."""
     try:
         voices = await speech_engine.list_voices()
