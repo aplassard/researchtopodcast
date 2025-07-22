@@ -60,6 +60,11 @@ warn_return_any = true
 warn_unused_configs = true
 
 [tool.pytest.ini_options]
+markers = [
+    "e2e: marks tests as end-to-end (deselect with '-m \"not e2e\"')",
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "serial"
+]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
