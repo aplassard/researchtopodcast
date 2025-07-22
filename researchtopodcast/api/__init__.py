@@ -1,4 +1,4 @@
-"""FastAPI application package."""
+"""FastAPI service for research2podcast."""
 
 from .main import app
 

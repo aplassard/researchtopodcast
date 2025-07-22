@@ -1,11 +1,11 @@
-"""Dependency injection for FastAPI."""
+"""FastAPI dependencies."""
 
-from typing import Annotated
-from fastapi import Depends, HTTPException
+from typing import Generator
+from fastapi import Depends, HTTPException, status
 
+from ..llm_client import OpenRouterClient, OpenAIClient, LLMClient
+from ..speech import GoogleTTSEngine, MockTTSEngine, SpeechEngine
 from ..settings import settings
-from ..llm_client import LLMClient, OpenRouterClient, OpenAIClient
-from ..speech import SpeechEngine, GoogleTTSEngine, MockTTSEngine
 
 
 def get_llm_client() -> LLMClient:
@@ -19,8 +19,8 @@ def get_llm_client() -> LLMClient:
         return OpenAIClient(api_key=settings.openai_api_key)
     else:
         raise HTTPException(
-            status_code=500,
-            detail="No LLM API key configured. Set OPENROUTER_API_KEY or OPENAI_API_KEY."
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="No LLM API key configured"
         )
 
 
@@ -30,17 +30,3 @@ def get_speech_engine() -> SpeechEngine:
         return GoogleTTSEngine(credentials_path=settings.google_tts_key)
     else:
         return MockTTSEngine()
-
-
-def validate_api_config():
-    """Validate API configuration."""
-    if not settings.has_llm_config:
-        raise HTTPException(
-            status_code=500,
-            detail="LLM configuration required"
-        )
-
-
-# Type aliases for dependency injection
-LLMClientDep = Annotated[LLMClient, Depends(get_llm_client)]
-SpeechEngineDep = Annotated[SpeechEngine, Depends(get_speech_engine)]
