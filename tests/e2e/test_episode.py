@@ -5,7 +5,7 @@ import asyncio
 from pathlib import Path
 import shutil
 import os
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, AsyncMock
 
 from researchtopodcast.cli.cli import app
 from researchtopodcast.settings import settings
@@ -100,6 +100,7 @@ def test_end_to_end_podcast_generation(runner, sample_document):
     # Verify script content
     from researchtopodcast.script_engine.formatter import ScriptFormatter
     formatter = ScriptFormatter()
+    script_file = output_dir / "script.podcast.yaml"
     script = formatter.load_from_file(script_file)
     
     assert script.meta.title == "E2E Test Episode"
@@ -141,6 +142,7 @@ def test_end_to_end_multi_speaker(runner, sample_document):
     
     from researchtopodcast.script_engine.formatter import ScriptFormatter
     formatter = ScriptFormatter()
+    script_file = output_dir / "script.podcast.yaml"
     script = formatter.load_from_file(script_file)
     
     # Should have multiple hosts in multi-llm mode
