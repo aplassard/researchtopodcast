@@ -7,6 +7,9 @@ from typing import Optional
 import typer
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from pypdf import PdfReader
+from bs4 import BeautifulSoup
+import markdown
 
 from ..settings import settings
 from ..llm_client import OpenRouterClient, OpenAIClient
@@ -72,9 +75,27 @@ def generate(
             
             console.print(f"[green]Reading input file: {input_path}[/green]")
             
-            # Simple text extraction (TODO: Add PDF/HTML parsing)
+            # Extract text based on file type
+            suffix = input_file.suffix.lower()
+            
             try:
-                content = input_file.read_text(encoding='utf-8')
+                if suffix == ".pdf":
+                    reader = PdfReader(input_file)
+                    content = "\n".join([page.extract_text() for page in reader.pages])
+                elif suffix == ".html":
+                    html = input_file.read_text(encoding='utf-8')
+                    soup = BeautifulSoup(html, "html.parser")
+                    content = soup.get_text()
+                elif suffix == ".md":
+                    md = input_file.read_text(encoding='utf-8')
+                    content = markdown.markdown(md)
+                else:
+                    content = input_file.read_text(encoding='utf-8')
+                    
+                if len(content.strip()) == 0:
+                    console.print("[red]Input file is empty[/red]")
+                    raise typer.Exit(1)
+                    
             except Exception as e:
                 console.print(f"[red]Error reading file: {e}[/red]")
                 raise typer.Exit(1)
