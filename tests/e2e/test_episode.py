@@ -65,32 +65,36 @@ def setup_test_environment(tmp_path, monkeypatch):
 
 
 @pytest.mark.e2e
-def test_end_to_end_podcast_generation(runner, sample_document):
+def test_end_to_end_podcast_generation(runner, sample_document, monkeypatch):
     """Test complete podcast generation from document to audio."""
-    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
-         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
-        
-        # Mock LLM
+    
+    # Mock get_llm_client to return a mocked client
+    async def mock_get_llm_client():
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
         mock_client.name = "mock-llm"
-        mock_get_llm.return_value = mock_client
-        
-        # Mock TTS
+        return mock_client
+    
+    # Mock get_speech_engine to return a mocked engine
+    async def mock_get_speech_engine():
         mock_engine = AsyncMock()
         mock_engine.synthesize.return_value = Path("/tmp/episode.mp3")
-        mock_get_speech.return_value = mock_engine
-        
-        output_dir = Path(settings.podgen_temp_dir) / "e2e_test"
-        
-        result = runner.invoke(app, [
-            "generate",
-            "--input", str(sample_document),
-            "--duration", "150",
-            "--mode", "solo",
-            "--out", str(output_dir),
-            "--title", "E2E Test Episode"
-        ])
+        return mock_engine
+    
+    # Apply the mocks
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_llm_client", mock_get_llm_client)
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_speech_engine", mock_get_speech_engine)
+    
+    output_dir = Path(settings.podgen_temp_dir) / "e2e_test"
+    
+    result = runner.invoke(app, [
+        "generate",
+        "--input", str(sample_document),
+        "--duration", "150",
+        "--mode", "solo",
+        "--out", str(output_dir),
+        "--title", "E2E Test Episode"
+    ])
     
     assert result.exit_code == 0, f"CLI command failed with output: {result.output}"
     
@@ -112,30 +116,33 @@ def test_end_to_end_podcast_generation(runner, sample_document):
 
 
 @pytest.mark.e2e
-def test_end_to_end_multi_speaker(runner, sample_document):
+def test_end_to_end_multi_speaker(runner, sample_document, monkeypatch):
     """Test end-to-end generation with multi-speaker mode."""
-    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
-         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
-        
+    
+    async def mock_get_llm_client():
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
         mock_client.name = "mock-llm"
-        mock_get_llm.return_value = mock_client
-        
+        return mock_client
+    
+    async def mock_get_speech_engine():
         mock_engine = AsyncMock()
         mock_engine.synthesize.return_value = Path("/tmp/episode.mp3")
-        mock_get_speech.return_value = mock_engine
-        
-        output_dir = Path(settings.podgen_temp_dir) / "multi_speaker"
-        
-        result = runner.invoke(app, [
-            "generate",
-            "--input", str(sample_document),
-            "--duration", "120",
-            "--mode", "single-llm",
-            "--out", str(output_dir),
-            "--title", "Multi-Speaker Test"
-        ])
+        return mock_engine
+    
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_llm_client", mock_get_llm_client)
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_speech_engine", mock_get_speech_engine)
+    
+    output_dir = Path(settings.podgen_temp_dir) / "multi_speaker"
+    
+    result = runner.invoke(app, [
+        "generate",
+        "--input", str(sample_document),
+        "--duration", "120",
+        "--mode", "single-llm",
+        "--out", str(output_dir),
+        "--title", "Multi-Speaker Test"
+    ])
     
     assert result.exit_code == 0, f"CLI command failed: {result.output}"
     
@@ -157,30 +164,33 @@ def test_end_to_end_multi_speaker(runner, sample_document):
 
 
 @pytest.mark.e2e
-def test_end_to_end_with_missing_keys(runner, sample_document):
+def test_end_to_end_with_missing_keys(runner, sample_document, monkeypatch):
     """Test end-to-end with mocked LLM and TTS (no real API keys needed)."""
-    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
-         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
-        
+    
+    async def mock_get_llm_client():
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
         mock_client.name = "mock-llm"
-        mock_get_llm.return_value = mock_client
-        
+        return mock_client
+    
+    async def mock_get_speech_engine():
         mock_engine = AsyncMock()
         mock_engine.synthesize.return_value = Path("/tmp/episode.mp3")
-        mock_get_speech.return_value = mock_engine
-        
-        output_dir = Path(settings.podgen_temp_dir) / "mocked_test"
-        
-        result = runner.invoke(app, [
-            "generate",
-            "--input", str(sample_document),
-            "--duration", "60",
-            "--mode", "solo",
-            "--out", str(output_dir),
-            "--title", "Mocked Test Episode"
-        ])
+        return mock_engine
+    
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_llm_client", mock_get_llm_client)
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_speech_engine", mock_get_speech_engine)
+    
+    output_dir = Path(settings.podgen_temp_dir) / "mocked_test"
+    
+    result = runner.invoke(app, [
+        "generate",
+        "--input", str(sample_document),
+        "--duration", "60",
+        "--mode", "solo",
+        "--out", str(output_dir),
+        "--title", "Mocked Test Episode"
+    ])
     
     assert result.exit_code == 0, f"CLI command failed: {result.output}"
     
@@ -280,30 +290,33 @@ def test_generate_with_invalid_mode(runner, sample_document):
 
 
 @pytest.mark.e2e
-def test_generate_with_custom_output_dir(runner, sample_document, tmp_path):
+def test_generate_with_custom_output_dir(runner, sample_document, tmp_path, monkeypatch):
     """Test generating with a custom output directory."""
-    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
-         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
-        
+    
+    async def mock_get_llm_client():
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
         mock_client.name = "mock-llm"
-        mock_get_llm.return_value = mock_client
-        
+        return mock_client
+    
+    async def mock_get_speech_engine():
         mock_engine = AsyncMock()
         mock_engine.synthesize.return_value = tmp_path / "episode.mp3"
-        mock_get_speech.return_value = mock_engine
-        
-        custom_dir = tmp_path / "custom_output"
-        
-        result = runner.invoke(app, [
-            "generate",
-            "--input", str(sample_document),
-            "--duration", "60",
-            "--mode", "solo",
-            "--out", str(custom_dir),
-            "--title", "Custom Output Test"
-        ])
+        return mock_engine
+    
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_llm_client", mock_get_llm_client)
+    monkeypatch.setattr("researchtopodcast.cli.cli.get_speech_engine", mock_get_speech_engine)
+    
+    custom_dir = tmp_path / "custom_output"
+    
+    result = runner.invoke(app, [
+        "generate",
+        "--input", str(sample_document),
+        "--duration", "60",
+        "--mode", "solo",
+        "--out", str(custom_dir),
+        "--title", "Custom Output Test"
+    ])
     
     assert result.exit_code == 0
     assert custom_dir.exists()
