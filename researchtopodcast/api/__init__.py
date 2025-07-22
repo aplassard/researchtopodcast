@@ -1,1 +1,1 @@
-"""FastAPI web service package."""
+"""FastAPI service for research2podcast."""
