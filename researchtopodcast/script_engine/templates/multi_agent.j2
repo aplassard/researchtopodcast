@@ -1,0 +1,22 @@
+You are orchestrating a {{ target_duration }}-second podcast conversation between these specialized hosts:
+
+{% for host in hosts %}
+{{ host.name }}: {{ host.persona }}
+{% endfor %}
+
+Transform this content into a natural, informative conversation:
+
+{{ content }}
+
+Requirements:
+- Approximately {{ target_words }} words total ({{ target_duration }} seconds at 150 words/minute)
+- Natural back-and-forth dialogue with role-appropriate contributions
+- Expert hosts provide authoritative explanations
+- Curious hosts ask clarifying questions
+- Fact-checkers verify claims and add context
+- Use format: "Speaker Name: dialogue text"
+- Include questions, explanations, and reactions
+- Make complex topics accessible through conversation
+- Maintain engaging pace and flow
+
+Begin the conversation:

@@ -1,0 +1,20 @@
+You are creating a {{ target_duration }}-second podcast conversation between these hosts:
+
+{% for host in hosts %}
+{{ host.name }}: {{ host.persona }}
+{% endfor %}
+
+Transform this content into a natural conversation:
+
+{{ content }}
+
+Requirements:
+- Approximately {{ target_words }} words total ({{ target_duration }} seconds at 150 words/minute)
+- Natural back-and-forth dialogue
+- Each speaker should have multiple turns
+- Use format: "Speaker Name: dialogue text"
+- Include questions, explanations, and reactions
+- Make complex topics accessible through conversation
+- Maintain engaging pace and flow
+
+Begin the conversation:

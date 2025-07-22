@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import List, Optional, Dict, Any
 import logging
 
+from jinja2 import Environment, PackageLoader, select_autoescape
+
 from ..llm_client import LLMClient, ChatMessage, SupportedModels, ModelProvider
 from ..settings import settings
 from .persona import Script, ScriptMetadata, Host, Segment, PodcastMode, PERSONA_TEMPLATES
@@ -17,6 +19,10 @@ class ScriptPlanner:
     
     def __init__(self, llm_client: LLMClient):
         self.llm_client = llm_client
+        self.jinja_env = Environment(
+            loader=PackageLoader("researchtopodcast", "script_engine/templates"),
+            autoescape=select_autoescape()
+        )
     
     async def generate_script(
         self,
@@ -46,13 +52,22 @@ class ScriptPlanner:
             source_document=source_document
         )
         
+        # Calculate target words
+        target_words = int(target_duration * 150 / 60)
+        
         # Generate segments based on mode
         if mode == PodcastMode.SOLO:
-            segments = await self._generate_solo_script(content, hosts[0], target_duration)
+            segments = await self._generate_script_with_template(
+                content, hosts, target_duration, target_words, "solo"
+            )
         elif mode == PodcastMode.SINGLE_LLM:
-            segments = await self._generate_single_llm_script(content, hosts, target_duration)
+            segments = await self._generate_script_with_template(
+                content, hosts, target_duration, target_words, "single_llm"
+            )
         elif mode == PodcastMode.MULTI_AGENT:
-            segments = await self._generate_multi_agent_script(content, hosts, target_duration)
+            segments = await self._generate_script_with_template(
+                content, hosts, target_duration, target_words, "multi_agent"
+            )
         else:
             raise ValueError(f"Unsupported mode: {mode}")
         
@@ -66,20 +81,8 @@ class ScriptPlanner:
     
     async def _generate_title(self, content: str) -> str:
         """Generate an engaging title from content."""
-        prompt = f"""
-You are a podcast title generator. Create an engaging, concise title for a 5-minute podcast episode based on this content.
-
-Content summary:
-{content[:500]}...
-
-Requirements:
-- Maximum 8 words
-- Engaging and descriptive
-- Suitable for a general audience
-- No quotation marks in response
-
-Title:
-"""
+        template = self.jinja_env.get_template("title.j2")
+        prompt = template.render(content=content[:500])
         
         messages = [ChatMessage(role="user", content=prompt)]
         response = await self.llm_client.chat(
@@ -93,85 +96,36 @@ Title:
         title = response.content.strip().strip('"').strip("'")
         return title
     
-    async def _generate_solo_script(self, content: str, host: Host, target_duration: int) -> List[Segment]:
-        """Generate solo narration script."""
-        target_words = int(target_duration * 150 / 60)  # 150 words per minute
-        
-        prompt = f"""
-You are {host.name}, a podcast host. {host.persona}
-
-Transform this content into an engaging {target_duration}-second solo podcast narration.
-
-Content:
-{content}
-
-Requirements:
-- Conversational, engaging tone
-- Approximately {target_words} words ({target_duration} seconds at 150 words/minute)
-- Break into natural paragraphs for pacing
-- Include smooth transitions
-- Make complex topics accessible
-- No speaker labels needed (solo narration)
-
-Begin the narration:
-"""
+    async def _generate_script_with_template(
+        self,
+        content: str,
+        hosts: List[Host],
+        target_duration: int,
+        target_words: int,
+        template_name: str
+    ) -> List[Segment]:
+        """Generate script using Jinja2 template."""
+        template = self.jinja_env.get_template(f"{template_name}.j2")
+        prompt = template.render(
+            content=content,
+            hosts=hosts,
+            target_duration=target_duration,
+            target_words=target_words
+        )
         
         messages = [ChatMessage(role="user", content=prompt)]
         response = await self.llm_client.chat(
             messages=messages,
             model=self._get_default_model(),
             max_tokens=settings.podgen_max_tokens,
-            temperature=0.7
+            temperature=0.7 if template_name == "solo" else 0.8
         )
         
         # Parse the response into segments
-        segments = self._parse_solo_response(response.content, host.name)
-        return segments
-    
-    async def _generate_single_llm_script(self, content: str, hosts: List[Host], target_duration: int) -> List[Segment]:
-        """Generate multi-speaker script using single LLM."""
-        target_words = int(target_duration * 150 / 60)
-        
-        host_descriptions = "\n".join([f"{host.name}: {host.persona}" for host in hosts])
-        
-        prompt = f"""
-You are creating a {target_duration}-second podcast conversation between these hosts:
-
-{host_descriptions}
-
-Transform this content into a natural conversation:
-
-{content}
-
-Requirements:
-- Approximately {target_words} words total ({target_duration} seconds at 150 words/minute)
-- Natural back-and-forth dialogue
-- Each speaker should have multiple turns
-- Use format: "Speaker Name: dialogue text"
-- Include questions, explanations, and reactions
-- Make complex topics accessible through conversation
-- Maintain engaging pace and flow
-
-Begin the conversation:
-"""
-        
-        messages = [ChatMessage(role="user", content=prompt)]
-        response = await self.llm_client.chat(
-            messages=messages,
-            model=self._get_default_model(),
-            max_tokens=settings.podgen_max_tokens,
-            temperature=0.8
-        )
-        
-        # Parse the response into segments
-        segments = self._parse_multi_speaker_response(response.content, hosts)
-        return segments
-    
-    async def _generate_multi_agent_script(self, content: str, hosts: List[Host], target_duration: int) -> List[Segment]:
-        """Generate script using multiple specialized agents."""
-        # For now, use single LLM approach but with more specialized prompts
-        # TODO: Implement true multi-agent orchestration
-        return await self._generate_single_llm_script(content, hosts, target_duration)
+        if len(hosts) == 1:
+            return self._parse_solo_response(response.content, hosts[0].name)
+        else:
+            return self._parse_multi_speaker_response(response.content, hosts)
     
     def _parse_solo_response(self, response: str, speaker_name: str) -> List[Segment]:
         """Parse solo narration response into segments."""
