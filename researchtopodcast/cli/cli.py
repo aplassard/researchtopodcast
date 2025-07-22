@@ -10,6 +10,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from pypdf import PdfReader
 from bs4 import BeautifulSoup
 import markdown
+from unittest.mock import MagicMock
 
 from ..settings import settings
 from ..llm_client import OpenRouterClient, OpenAIClient
