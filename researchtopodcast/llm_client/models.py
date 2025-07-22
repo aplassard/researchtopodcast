@@ -1,7 +1,7 @@
-"""Model definitions and configurations."""
+"""Supported LLM models and their configurations."""
 
-from dataclasses import dataclass
 from enum import Enum
+from dataclasses import dataclass
 from typing import Dict, Optional
 
 
@@ -13,13 +13,13 @@ class ModelProvider(Enum):
 
 @dataclass
 class ModelConfig:
-    """Configuration for an LLM model."""
+    """Configuration for a specific model."""
     id: str
     provider: ModelProvider
-    context_length: int
-    input_cost_per_1k: float  # USD per 1K input tokens
-    output_cost_per_1k: float  # USD per 1K output tokens
-    description: str
+    max_tokens: int
+    cost_per_1m_prompt_tokens: float
+    cost_per_1m_completion_tokens: float
+    context_window: int
 
 
 class SupportedModels(Enum):
@@ -29,38 +29,29 @@ class SupportedModels(Enum):
     GPT_4O_MINI = ModelConfig(
         id="openai/gpt-4o-mini",
         provider=ModelProvider.OPENROUTER,
-        context_length=128000,
-        input_cost_per_1k=0.00015,
-        output_cost_per_1k=0.0006,
-        description="OpenAI GPT-4o Mini via OpenRouter"
+        max_tokens=16384,
+        cost_per_1m_prompt_tokens=0.15,
+        cost_per_1m_completion_tokens=0.60,
+        context_window=128000
     )
     
     DEEPSEEK_CODER = ModelConfig(
         id="deepseek/deepseek-coder",
         provider=ModelProvider.OPENROUTER,
-        context_length=16384,
-        input_cost_per_1k=0.00014,
-        output_cost_per_1k=0.00028,
-        description="DeepSeek Coder via OpenRouter"
+        max_tokens=4096,
+        cost_per_1m_prompt_tokens=0.14,
+        cost_per_1m_completion_tokens=0.28,
+        context_window=16384
     )
     
-    # OpenAI direct models
+    # OpenAI models (fallback)
     OPENAI_GPT_4O_MINI = ModelConfig(
         id="gpt-4o-mini",
         provider=ModelProvider.OPENAI,
-        context_length=128000,
-        input_cost_per_1k=0.00015,
-        output_cost_per_1k=0.0006,
-        description="OpenAI GPT-4o Mini (direct)"
-    )
-    
-    OPENAI_GPT_4O = ModelConfig(
-        id="gpt-4o",
-        provider=ModelProvider.OPENAI,
-        context_length=128000,
-        input_cost_per_1k=0.005,
-        output_cost_per_1k=0.015,
-        description="OpenAI GPT-4o (direct)"
+        max_tokens=16384,
+        cost_per_1m_prompt_tokens=0.15,
+        cost_per_1m_completion_tokens=0.60,
+        context_window=128000
     )
 
 

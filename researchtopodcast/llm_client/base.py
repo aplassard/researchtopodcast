@@ -2,12 +2,12 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional, Protocol, Dict, Any
+from typing import Any, Dict, List, Optional, Protocol
 from enum import Enum
 
 
 class MessageRole(Enum):
-    """Chat message roles."""
+    """Message roles for chat conversations."""
     SYSTEM = "system"
     USER = "user"
     ASSISTANT = "assistant"
@@ -16,33 +16,29 @@ class MessageRole(Enum):
 @dataclass
 class ChatMessage:
     """A single chat message."""
-    role: MessageRole
+    role: str
     content: str
     
     def to_dict(self) -> Dict[str, str]:
-        """Convert to dictionary format."""
-        return {
-            "role": self.role.value,
-            "content": self.content
-        }
+        """Convert to dictionary format for API calls."""
+        return {"role": self.role, "content": self.content}
 
 
 @dataclass
 class LLMUsage:
-    """Token usage information."""
+    """Usage statistics for LLM calls."""
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
-    estimated_cost: Optional[float] = None
+    cost_usd: float = 0.0
 
 
 @dataclass
 class LLMResponse:
-    """Response from an LLM."""
+    """Response from LLM including usage stats."""
     content: str
-    usage: Optional[LLMUsage] = None
-    model: Optional[str] = None
-    finish_reason: Optional[str] = None
+    usage: LLMUsage
+    model: str
 
 
 class LLMClient(Protocol):
@@ -50,7 +46,7 @@ class LLMClient(Protocol):
     
     @property
     def name(self) -> str:
-        """Client name for identification."""
+        """Client name for logging."""
         ...
     
     async def chat(
@@ -59,13 +55,13 @@ class LLMClient(Protocol):
         model: str,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs
+        **kwargs: Any
     ) -> LLMResponse:
         """Send chat messages and get response."""
         ...
     
     def estimate_cost(self, usage: LLMUsage, model: str) -> float:
-        """Estimate cost for token usage."""
+        """Estimate cost for the given usage."""
         ...
 
 
@@ -80,7 +76,7 @@ class BaseLLMClient(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Client name for identification."""
+        """Client name for logging."""
         pass
     
     @abstractmethod
@@ -90,27 +86,24 @@ class BaseLLMClient(ABC):
         model: str,
         max_tokens: Optional[int] = None,
         temperature: Optional[float] = None,
-        **kwargs
+        **kwargs: Any
     ) -> LLMResponse:
         """Send chat messages and get response."""
         pass
     
     @abstractmethod
     def estimate_cost(self, usage: LLMUsage, model: str) -> float:
-        """Estimate cost for token usage."""
+        """Estimate cost for the given usage."""
         pass
     
     @property
     def total_usage(self) -> LLMUsage:
-        """Get cumulative usage statistics."""
+        """Get total usage across all calls."""
         return self._total_usage
     
     def _update_usage(self, usage: LLMUsage) -> None:
-        """Update cumulative usage statistics."""
+        """Update total usage statistics."""
         self._total_usage.prompt_tokens += usage.prompt_tokens
         self._total_usage.completion_tokens += usage.completion_tokens
         self._total_usage.total_tokens += usage.total_tokens
-        if usage.estimated_cost:
-            if self._total_usage.estimated_cost is None:
-                self._total_usage.estimated_cost = 0.0
-            self._total_usage.estimated_cost += usage.estimated_cost
+        self._total_usage.cost_usd += usage.cost_usd
