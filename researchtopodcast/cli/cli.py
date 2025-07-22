@@ -181,10 +181,20 @@ def list_voices() -> None:
 
 @app.command()
 def serve() -> None:
-    """Start the web interface."""
-    console.print("[green]Starting web interface...[/green]")
-    console.print("[yellow]Web interface not yet implemented[/yellow]")
-    console.print("Use: docker compose up")
+    """Start the FastAPI web server."""
+    import uvicorn
+    from ..api.main import app as fastapi_app
+    
+    console.print("[green]Starting Research2Podcast API server...[/green]")
+    console.print(f"[blue]Server will be available at: http://{settings.api_host}:{settings.api_port}[/blue]")
+    console.print(f"[blue]API docs: http://{settings.api_host}:{settings.api_port}/docs[/blue]")
+    
+    uvicorn.run(
+        fastapi_app,
+        host=settings.api_host,
+        port=settings.api_port,
+        log_level="info"
+    )
 
 
 if __name__ == "__main__":
