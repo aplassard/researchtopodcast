@@ -73,6 +73,7 @@ def test_end_to_end_podcast_generation(runner, sample_document):
         # Mock LLM
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
+        mock_client.name = "mock-llm"
         mock_get_llm.return_value = mock_client
         
         # Mock TTS
@@ -118,6 +119,7 @@ def test_end_to_end_multi_speaker(runner, sample_document):
         
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
+        mock_client.name = "mock-llm"
         mock_get_llm.return_value = mock_client
         
         mock_engine = AsyncMock()
@@ -162,6 +164,7 @@ def test_end_to_end_with_missing_keys(runner, sample_document):
         
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
+        mock_client.name = "mock-llm"
         mock_get_llm.return_value = mock_client
         
         mock_engine = AsyncMock()
@@ -210,9 +213,17 @@ def test_list_voices_command(runner):
 @pytest.mark.e2e
 def test_serve_command(runner):
     """Test the serve command (without actually starting the server)."""
-    with patch('researchtopodcast.cli.cli.get_llm_client'), \
-         patch('researchtopodcast.cli.cli.get_speech_engine'), \
+    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
+         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech, \
          patch('researchtopodcast.cli.cli.uvicorn.run') as mock_run:
+        
+        # Set up mocks
+        mock_client = AsyncMock()
+        mock_client.name = "mock-llm"
+        mock_get_llm.return_value = mock_client
+        
+        mock_engine = AsyncMock()
+        mock_get_speech.return_value = mock_engine
         
         result = runner.invoke(app, ["serve"])
         
@@ -276,6 +287,7 @@ def test_generate_with_custom_output_dir(runner, sample_document, tmp_path):
         
         mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
+        mock_client.name = "mock-llm"
         mock_get_llm.return_value = mock_client
         
         mock_engine = AsyncMock()
