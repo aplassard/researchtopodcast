@@ -1,0 +1,38 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4            # fetch repo
+
+      # 1️⃣  Install uv *and* cache its binary
+      - uses: astral-sh/setup-uv@v6          # official action
+        with:
+          cache: true                        # speeds up future runs
+
+      # 2️⃣  Create an isolated project venv **once** per job
+      - name: Create virtual env
+        run: uv venv                         # makes .venv in repo root  [oai_citation:0‡Astral Docs](https://docs.astral.sh/uv/pip/environments/?utm_source=chatgpt.com)
+
+      # 3️⃣  Sync / install your dev dependencies *inside* that venv
+      - name: Install dependencies
+        run: uv pip install -e ".[dev]"      # works now that .venv exists  [oai_citation:1‡GitHub](https://github.com/astral-sh/uv/issues/1374?utm_source=chatgpt.com)
+
+      # 4️⃣  Static analysis
+      - name: Lint & type-check
+        run: |
+          uv run ruff check .
+          uv run mypy --strict .
+
+      # 5️⃣  Tests
+      - name: Test
+        run: uv run pytest -q
