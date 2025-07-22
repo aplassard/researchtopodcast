@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+      - ./.env:/app/.env
+    environment:
+      - PODGEN_TEMP_DIR=/app/output
+    command: >
+      sh -c "echo 'Hello Audio!' && 
+             echo 'Research2Podcast Docker setup complete!' &&
+             echo 'Run: docker compose exec app research2podcast --help' &&
+             tail -f /dev/null"
+
+  # Future: Add frontend service here
+  # frontend:
+  #   build: ./frontend
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - app
