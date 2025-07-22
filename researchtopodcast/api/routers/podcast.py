@@ -121,11 +121,11 @@ async def create_podcast(
 
 @router.post("/podcast/upload", response_model=PodcastResponse)
 async def create_podcast_from_upload(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     mode: str = Form("solo"),
     duration: int = Form(300),
     title: Optional[str] = Form(None),
-    background_tasks: BackgroundTasks,
     llm_client = Depends(get_llm_client),
     speech_engine = Depends(get_speech_engine)
 ):
