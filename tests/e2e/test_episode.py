@@ -67,30 +67,35 @@ def setup_test_environment(tmp_path, monkeypatch):
 @pytest.mark.e2e
 def test_end_to_end_podcast_generation(runner, sample_document):
     """Test complete podcast generation from document to audio."""
-    # Use the sample document created by the fixture
-    result = runner.invoke(app, [
-        "generate",
-        "--input", str(sample_document),
-        "--duration", "150",
-        "--mode", "solo",
-        "--out", str(Path(settings.podgen_temp_dir) / "e2e_test"),
-        "--title", "E2E Test Episode"
-    ])
+    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
+         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
+        
+        # Mock LLM
+        mock_client = AsyncMock()
+        mock_client.chat.return_value = "Mock LLM response"
+        mock_get_llm.return_value = mock_client
+        
+        # Mock TTS
+        mock_engine = AsyncMock()
+        mock_engine.synthesize.return_value = Path("/tmp/episode.mp3")
+        mock_get_speech.return_value = mock_engine
+        
+        output_dir = Path(settings.podgen_temp_dir) / "e2e_test"
+        
+        result = runner.invoke(app, [
+            "generate",
+            "--input", str(sample_document),
+            "--duration", "150",
+            "--mode", "solo",
+            "--out", str(output_dir),
+            "--title", "E2E Test Episode"
+        ])
     
-    # Should complete successfully
     assert result.exit_code == 0, f"CLI command failed with output: {result.output}"
     
-    # Check that output directory was created
-    output_dir = Path(settings.podgen_temp_dir) / "e2e_test"
     assert output_dir.exists()
-    
-    # Check that script file was created
-    script_file = output_dir / "script.podcast.yaml"
-    assert script_file.exists()
-    
-    # Check that audio file was created
-    audio_file = output_dir / "episode.mp3"
-    assert audio_file.exists()
+    assert (output_dir / "script.podcast.yaml").exists()
+    assert (output_dir / "episode.mp3").exists()
     
     # Verify script content
     from researchtopodcast.script_engine.formatter import ScriptFormatter
@@ -107,21 +112,32 @@ def test_end_to_end_podcast_generation(runner, sample_document):
 @pytest.mark.e2e
 def test_end_to_end_multi_speaker(runner, sample_document):
     """Test end-to-end generation with multi-speaker mode."""
-    result = runner.invoke(app, [
-        "generate",
-        "--input", str(sample_document),
-        "--duration", "120",
-        "--mode", "single-llm",
-        "--out", str(Path(settings.podgen_temp_dir) / "multi_speaker"),
-        "--title", "Multi-Speaker Test"
-    ])
+    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
+         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
+        
+        mock_client = AsyncMock()
+        mock_client.chat.return_value = "Mock LLM response"
+        mock_get_llm.return_value = mock_client
+        
+        mock_engine = AsyncMock()
+        mock_engine.synthesize.return_value = Path("/tmp/episode.mp3")
+        mock_get_speech.return_value = mock_engine
+        
+        output_dir = Path(settings.podgen_temp_dir) / "multi_speaker"
+        
+        result = runner.invoke(app, [
+            "generate",
+            "--input", str(sample_document),
+            "--duration", "120",
+            "--mode", "single-llm",
+            "--out", str(output_dir),
+            "--title", "Multi-Speaker Test"
+        ])
     
     assert result.exit_code == 0, f"CLI command failed: {result.output}"
     
-    output_dir = Path(settings.podgen_temp_dir) / "multi_speaker"
-    script_file = output_dir / "script.podcast.yaml"
-    
-    assert script_file.exists()
+    assert output_dir.exists()
+    assert (output_dir / "script.podcast.yaml").exists()
     
     from researchtopodcast.script_engine.formatter import ScriptFormatter
     formatter = ScriptFormatter()
@@ -137,42 +153,34 @@ def test_end_to_end_multi_speaker(runner, sample_document):
 
 
 @pytest.mark.e2e
-def test_end_to_end_with_missing_keys(runner, sample_document, monkeypatch):
+def test_end_to_end_with_missing_keys(runner, sample_document):
     """Test end-to-end with mocked LLM and TTS (no real API keys needed)."""
-    # Remove any real API keys
-    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-    monkeypatch.delenv("GOOGLE_TTS_KEY", raising=False)
-    
-    # Mock the LLM client to avoid real API calls
-    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm:
-        mock_client = MagicMock()
+    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
+         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
+        
+        mock_client = AsyncMock()
         mock_client.chat.return_value = "Mock LLM response"
         mock_get_llm.return_value = mock_client
         
-        # Mock the speech engine
-        with patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
-            mock_engine = MagicMock()
-            mock_engine.synthesize.return_value = Path("/tmp/mock.mp3")
-            mock_get_speech.return_value = mock_engine
-            
-            result = runner.invoke(app, [
-                "generate",
-                "--input", str(sample_document),
-                "--duration", "60",
-                "--mode", "solo",
-                "--out", str(Path(settings.podgen_temp_dir) / "mocked_test"),
-                "--title", "Mocked Test Episode"
-            ])
-            
-            # Should complete successfully even without real API keys
-            # (using mocks)
-            assert result.exit_code == 0, f"CLI command failed: {result.output}"
-            
-            # Verify output files were created
-            output_dir = Path(settings.podgen_temp_dir) / "mocked_test"
-            assert output_dir.exists()
-            assert (output_dir / "script.podcast.yaml").exists()
+        mock_engine = AsyncMock()
+        mock_engine.synthesize.return_value = Path("/tmp/episode.mp3")
+        mock_get_speech.return_value = mock_engine
+        
+        output_dir = Path(settings.podgen_temp_dir) / "mocked_test"
+        
+        result = runner.invoke(app, [
+            "generate",
+            "--input", str(sample_document),
+            "--duration", "60",
+            "--mode", "solo",
+            "--out", str(output_dir),
+            "--title", "Mocked Test Episode"
+        ])
+    
+    assert result.exit_code == 0, f"CLI command failed: {result.output}"
+    
+    assert output_dir.exists()
+    assert (output_dir / "script.podcast.yaml").exists()
 
 
 @pytest.mark.e2e
@@ -261,20 +269,29 @@ def test_generate_with_invalid_mode(runner, sample_document):
 @pytest.mark.e2e
 def test_generate_with_custom_output_dir(runner, sample_document, tmp_path):
     """Test generating with a custom output directory."""
-    custom_dir = tmp_path / "custom_output"
-    
-    result = runner.invoke(app, [
-        "generate",
-        "--input", str(sample_document),
-        "--duration", "60",
-        "--mode", "solo",
-        "--out", str(custom_dir),
-        "--title", "Custom Output Test"
-    ])
+    with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
+         patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech:
+        
+        mock_client = AsyncMock()
+        mock_client.chat.return_value = "Mock LLM response"
+        mock_get_llm.return_value = mock_client
+        
+        mock_engine = AsyncMock()
+        mock_engine.synthesize.return_value = tmp_path / "episode.mp3"
+        mock_get_speech.return_value = mock_engine
+        
+        custom_dir = tmp_path / "custom_output"
+        
+        result = runner.invoke(app, [
+            "generate",
+            "--input", str(sample_document),
+            "--duration", "60",
+            "--mode", "solo",
+            "--out", str(custom_dir),
+            "--title", "Custom Output Test"
+        ])
     
     assert result.exit_code == 0
-    
-    # Check that output was written to custom directory
     assert custom_dir.exists()
     assert (custom_dir / "script.podcast.yaml").exists()
     assert (custom_dir / "episode.mp3").exists()
