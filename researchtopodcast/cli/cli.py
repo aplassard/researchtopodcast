@@ -1,6 +1,7 @@
 """Command-line interface for research2podcast."""
 
 import asyncio
+import uvicorn
 from pathlib import Path
 from typing import Optional
 import typer

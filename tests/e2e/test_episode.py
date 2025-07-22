@@ -19,10 +19,9 @@ def runner():
 
 
 @pytest.fixture
-def sample_document():
+def sample_document(tmp_path):
     """Create a sample document for testing."""
-    doc_path = Path("tests/data/sample.md")
-    doc_path.parent.mkdir(exist_ok=True)
+    doc_path = tmp_path / "sample.md"
     
     content = """# Test Document
 
@@ -50,24 +49,19 @@ from human writing."""
 
 
 @pytest.fixture(autouse=True)
-def setup_test_environment(tmp_path):
+def setup_test_environment(tmp_path, monkeypatch):
     """Setup test environment with temporary output directory."""
-    # Save original settings
-    original_temp_dir = settings.podgen_temp_dir
-    
-    # Set temporary output directory
     temp_output = tmp_path / "output"
     temp_output.mkdir()
-    settings.podgen_temp_dir = str(temp_output)
+    
+    # Use monkeypatch to avoid modifying global settings
+    monkeypatch.setattr(settings, "podgen_temp_dir", str(temp_output))
     
     # Create temporary data directory
     temp_data = tmp_path / "data"
     temp_data.mkdir()
     
     yield
-    
-    # Restore original settings
-    settings.podgen_temp_dir = original_temp_dir
 
 
 @pytest.mark.e2e
