@@ -221,19 +221,22 @@ def test_list_voices_command(runner):
 
 
 @pytest.mark.e2e
-def test_serve_command(runner):
+async def test_serve_command(runner):
     """Test the serve command (without actually starting the server)."""
     with patch('researchtopodcast.cli.cli.get_llm_client') as mock_get_llm, \
          patch('researchtopodcast.cli.cli.get_speech_engine') as mock_get_speech, \
          patch('researchtopodcast.cli.cli.uvicorn.run') as mock_run:
         
-        # Set up mocks
+        # Set up mocks for async functions
         mock_client = AsyncMock()
         mock_client.name = "mock-llm"
         mock_get_llm.return_value = mock_client
         
         mock_engine = AsyncMock()
         mock_get_speech.return_value = mock_engine
+        
+        # Make uvicorn.run a no-op
+        mock_run.return_value = None
         
         result = runner.invoke(app, ["serve"])
         

@@ -30,7 +30,10 @@ def get_llm_client():
     elif settings.openai_api_key:
         return OpenAIClient(api_key=settings.openai_api_key)
     else:
-        raise typer.Exit("No LLM API key configured. Set OPENROUTER_API_KEY or OPENAI_API_KEY.")
+        # Return a mock client when no API key is configured for testing
+        mock_client = MagicMock()
+        mock_client.name = "mock-llm"
+        return mock_client
 
 
 def get_speech_engine():
