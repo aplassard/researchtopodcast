@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_TTS_KEY=${GOOGLE_TTS_KEY:-}
+    volumes:
+      - ./output:/app/output
+    command: echo "Hello Audio!"
+
+volumes:
+  output:
